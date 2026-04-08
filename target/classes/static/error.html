@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Error — Crop Pest Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-brand" href="/dashboard">&#127807; CropGuard</a>
+  <div class="nav-spacer"></div>
+  <a class="nav-link" href="/dashboard">Dashboard</a>
+  <a class="nav-link" href="/login">Login</a>
+</nav>
+<div class="page-center">
+  <div style="text-align:center;max-width:480px;">
+    <div style="font-size:5rem;margin-bottom:1.5rem;" id="errorEmoji">&#128680;</div>
+    <div style="font-size:4rem;font-weight:900;color:var(--red);margin-bottom:.5rem;" id="statusCode">Error</div>
+    <div style="font-size:1.1rem;font-weight:700;color:var(--text-main);margin-bottom:.75rem;" id="errorTitle">Something went wrong</div>
+    <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:2rem;" id="errorMessage">
+      An unexpected error occurred. Please try again or contact support.
+    </p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
+      <a href="/dashboard" class="btn btn-primary">Dashboard</a>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var code = params.get('code');
+  var msg = params.get('message');
+  if(code){ document.getElementById('statusCode').textContent = code; }
+  if(msg){ document.getElementById('errorMessage').textContent = decodeURIComponent(msg); }
+  if(code==='404'){
+    document.getElementById('errorEmoji').textContent='&#128269;';
+    document.getElementById('errorTitle').textContent='Page Not Found';
+  } else if(code==='403'){
+    document.getElementById('errorEmoji').textContent='&#128274;';
+    document.getElementById('errorTitle').textContent='Access Denied';
+  }
+})();
+</script>
+</body>
+</html>

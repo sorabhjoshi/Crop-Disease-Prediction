@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Crop Pest Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="/dashboard">🌿 CropGuard</a>
+  <div class="nav-spacer"></div>
+  <a class="nav-link active" href="/dashboard">Dashboard</a>
+  <a class="nav-link" href="/predict">Predict</a>
+  <a class="nav-link" href="/history">History</a>
+  <span class="nav-user" id="navUser">User</span>
+  <a class="nav-link" href="/logout" style="color:#f97316;">Logout</a>
+</nav>
+
+<div class="page-wide">
+
+  <!-- Welcome banner -->
+  <div style="margin-bottom:2rem;">
+    <h1 style="font-size:1.6rem; font-weight:800; color:var(--text-main);">
+      Welcome back, <span id="welcomeName" style="color:var(--green);">—</span>
+    </h1>
+    <p style="color:var(--text-muted); margin-top:.35rem; font-size:.9rem;">
+      Here's an overview of your pest prediction activity.
+    </p>
+  </div>
+
+  <!-- Flash message -->
+  <div id="msgBanner" class="alert alert-success" style="display:none;"></div>
+
+  <!-- Stats row -->
+  <div class="grid-4" style="margin-bottom:2rem;">
+    <div class="stat-card">
+      <div class="stat-value" id="statTotal">—</div>
+      <div class="stat-label">Total Predictions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:#f59e0b;">
+        <span id="statHigh">—</span>
+      </div>
+      <div class="stat-label">High Risk Results</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:#22c55e;">
+        <span id="statSafe">—</span>
+      </div>
+      <div class="stat-label">Low Risk Results</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:#3b82f6; font-size:1.3rem;" id="statDate">—</div>
+      <div class="stat-label">Last Prediction</div>
+    </div>
+  </div>
+
+  <!-- Quick action -->
+  <div class="card" style="margin-bottom:2rem; display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;">
+    <div>
+      <h2 style="font-size:1.1rem; font-weight:700; margin-bottom:.3rem;">Run a New Prediction</h2>
+      <p style="color:var(--text-muted); font-size:.875rem;">Enter 14 field parameters and get an instant pest risk assessment.</p>
+    </div>
+    <div style="flex:1; min-width:200px; display:flex; justify-content:flex-end;">
+      <a href="/predict" class="btn btn-primary btn-lg">🔍 New Prediction</a>
+    </div>
+  </div>
+
+  <!-- Recent predictions table -->
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
+      <h2 style="font-size:1rem; font-weight:700;">Recent Predictions</h2>
+      <a href="/history" style="font-size:.8rem; color:var(--green); text-decoration:none;">View all →</a>
+    </div>
+
+    <div class="table-wrap">
+      <table id="recentTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Temp (°C)</th>
+            <th>Humidity (%)</th>
+            <th>Rainfall (mm)</th>
+            <th>Result</th>
+            <th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody id="recentBody">
+          <tr><td colspan="7" style="text-align:center; color:var(--text-dim); padding:2rem;">
+            Loading...
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// This page's data is loaded by DashboardServlet; here we render what's passed
+// via the session context. For a single-page JavaFX WebView approach, we fetch
+// the dashboard data JSON from the API endpoint.
+
+(function() {
+  // Read from URL params (DashboardServlet may pass data via redirects)
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('msg')) {
+    const b = document.getElementById('msgBanner');
+    b.textContent = '\u2713 ' + decodeURIComponent(params.get('msg'));
+    b.style.display = 'flex';
+  }
+
+  // Fetch dashboard data from JSON API
+  fetch('/api/dashboard')
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('welcomeName').textContent = data.username || '';
+      document.getElementById('navUser').textContent = data.username || '';
+      document.getElementById('statTotal').textContent = data.totalPredictions || 0;
+      document.getElementById('statHigh').textContent = data.highRiskCount || 0;
+      document.getElementById('statSafe').textContent = data.lowRiskCount || 0;
+      document.getElementById('statDate').textContent = data.lastPredictionDate || 'N/A';
+
+      const tbody = document.getElementById('recentBody');
+      if (!data.recentPredictions || data.recentPredictions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-dim); padding:2rem;">No predictions yet. <a href="/predict" style="color:var(--green);">Make your first one!</a></td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.recentPredictions.map((p, i) => {
+        const riskClass = getRiskClass(p.predictedClass);
+        return `<tr>
+          <td style="color:var(--text-dim);">${i + 1}</td>
+          <td>${formatDate(p.createdAt)}</td>
+          <td>${p.temperature}</td>
+          <td>${p.humidity}</td>
+          <td>${p.rainfall}</td>
+          <td><span class="risk-badge ${riskClass}">${p.predictedLabel}</span></td>
+          <td>${(p.confidenceScore * 100).toFixed(1)}%</td>
+        </tr>`;
+      }).join('');
+    })
+    .catch(() => {
+      // Graceful fallback — if API isn't ready yet
+      document.getElementById('welcomeName').textContent = 'User';
+      document.getElementById('statTotal').textContent = '0';
+      document.getElementById('statHigh').textContent = '0';
+      document.getElementById('statSafe').textContent = '0';
+      document.getElementById('statDate').textContent = 'N/A';
+      document.getElementById('recentBody').innerHTML =
+        '<tr><td colspan="7" style="text-align:center; color:var(--text-dim); padding:2rem;">No data available yet.</td></tr>';
+    });
+
+  function getRiskClass(cls) {
+    return ['risk-very-low','risk-low','risk-moderate','risk-high','risk-very-high'][cls] || '';
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); }
+    catch(e) { return iso; }
+  }
+})();
+</script>
+</body>
+</html>

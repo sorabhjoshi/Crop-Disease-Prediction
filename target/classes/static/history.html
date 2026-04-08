@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>History — Crop Pest Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-brand" href="/dashboard">&#127807; CropGuard</a>
+  <div class="nav-spacer"></div>
+  <a class="nav-link" href="/dashboard">Dashboard</a>
+  <a class="nav-link" href="/predict">Predict</a>
+  <a class="nav-link active" href="/history">History</a>
+  <a class="nav-link" href="/logout" style="color:#f97316;">Logout</a>
+</nav>
+<div class="page-wide">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <h1 style="font-size:1.5rem;font-weight:800;">Prediction History</h1>
+      <p style="color:var(--text-muted);font-size:.875rem;margin-top:.35rem;" id="countLine">Loading...</p>
+    </div>
+    <a href="/predict" class="btn btn-primary">New Prediction</a>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="card card-sm" style="margin-bottom:1.25rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+    <label style="font-size:.8rem;color:var(--text-muted);font-weight:600;">Filter by risk:</label>
+    <select id="filterRisk" class="form-input" style="width:auto;padding:.4rem .8rem;font-size:.85rem;">
+      <option value="">All</option>
+      <option value="0">Very Low</option>
+      <option value="1">Low</option>
+      <option value="2">Moderate</option>
+      <option value="3">High</option>
+      <option value="4">Very High</option>
+    </select>
+    <input type="text" id="searchInput" class="form-input" style="width:200px;padding:.4rem .8rem;font-size:.85rem;" placeholder="Search by date..."/>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Temp</th>
+            <th>Humidity</th>
+            <th>Wind</th>
+            <th>N / P / K</th>
+            <th>Rainfall</th>
+            <th>Soil Moist.</th>
+            <th>Result</th>
+            <th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody">
+          <tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:2rem;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+var ALL_ROWS = [];
+var LABELS=['Very Low Risk','Low Risk','Moderate Risk','High Risk','Very High Risk'];
+var CLASSES=['risk-very-low','risk-low','risk-moderate','risk-high','risk-very-high'];
+
+fetch('/api/history')
+  .then(function(r){return r.json();})
+  .then(function(data){
+    ALL_ROWS = data;
+    document.getElementById('countLine').textContent = data.length + ' total prediction' + (data.length!==1?'s':'') + ' on record.';
+    renderTable(data);
+  })
+  .catch(function(){
+    document.getElementById('historyBody').innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:2rem;">No history found.</td></tr>';
+    document.getElementById('countLine').textContent='0 predictions on record.';
+  });
+
+function renderTable(rows) {
+  var tbody = document.getElementById('historyBody');
+  if (!rows || rows.length===0) {
+    tbody.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:2rem;">No predictions match your filter. <a href="/predict" style="color:var(--green);">Make one now!</a></td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(function(p,i){
+    var cls = p.predictedClass;
+    return '<tr>'
+      +'<td style="color:var(--text-dim);">'+(i+1)+'</td>'
+      +'<td>'+formatDate(p.createdAt)+'</td>'
+      +'<td>'+p.temperature+'°C</td>'
+      +'<td>'+p.humidity+'%</td>'
+      +'<td>'+p.windSpeed+' km/h</td>'
+      +'<td>'+p.nitrogen+'/'+p.phosphorus+'/'+p.potassium+'</td>'
+      +'<td>'+p.rainfall+' mm</td>'
+      +'<td>'+p.soilMoisture+'%</td>'
+      +'<td><span class="risk-badge '+CLASSES[cls]+'">'+LABELS[cls]+'</span></td>'
+      +'<td>'+(p.confidenceScore*100).toFixed(1)+'%</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function formatDate(iso){
+  if(!iso) return '—';
+  try{return new Date(iso).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return iso;}
+}
+
+document.getElementById('filterRisk').addEventListener('change', applyFilter);
+document.getElementById('searchInput').addEventListener('input', applyFilter);
+
+function applyFilter(){
+  var riskVal = document.getElementById('filterRisk').value;
+  var search = document.getElementById('searchInput').value.toLowerCase();
+  var filtered = ALL_ROWS.filter(function(p){
+    var riskMatch = riskVal==='' || p.predictedClass==riskVal;
+    var searchMatch = !search || (p.createdAt||'').toLowerCase().includes(search);
+    return riskMatch && searchMatch;
+  });
+  renderTable(filtered);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Result — Crop Pest Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-brand" href="/dashboard">&#127807; CropGuard</a>
+  <div class="nav-spacer"></div>
+  <a class="nav-link" href="/dashboard">Dashboard</a>
+  <a class="nav-link active" href="/predict">Predict</a>
+  <a class="nav-link" href="/history">History</a>
+  <a class="nav-link" href="/logout" style="color:#f97316;">Logout</a>
+</nav>
+<div class="page" style="max-width:720px;">
+  <div style="margin-bottom:1.75rem;">
+    <h1 style="font-size:1.5rem;font-weight:800;">Prediction Result</h1>
+    <p style="color:var(--text-muted);font-size:.875rem;margin-top:.35rem;">Analysis complete. Result saved to history.</p>
+  </div>
+  <div class="card" id="resultCard" style="margin-bottom:1.5rem;text-align:center;padding:2.5rem 2rem;">
+    <div id="riskEmoji" style="font-size:3.5rem;margin-bottom:1rem;">&#128269;</div>
+    <div id="riskBadgeWrap" style="margin-bottom:1rem;"></div>
+    <div id="riskLabel" style="font-size:1.6rem;font-weight:800;margin-bottom:.5rem;">Loading...</div>
+    <div id="riskDesc" style="color:var(--text-muted);font-size:.9rem;max-width:400px;margin:0 auto;"></div>
+    <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+      <div style="font-size:.8rem;color:var(--text-dim);">Confidence Score</div>
+      <div id="confidence" style="font-size:2rem;font-weight:800;color:var(--green);margin-top:.25rem;">—</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:1.5rem;">
+    <h2 style="font-size:.85rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1.25rem;">Class Probabilities</h2>
+    <div id="probBars"></div>
+  </div>
+  <div class="card" style="margin-bottom:1.75rem;">
+    <h2 style="font-size:.85rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem;">Recommendations</h2>
+    <div id="recommendations" style="font-size:.875rem;color:var(--text-muted);line-height:1.8;"></div>
+  </div>
+  <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+    <a href="/predict" class="btn btn-primary">New Prediction</a>
+    <a href="/history" class="btn btn-secondary">View History</a>
+    <a href="/dashboard" class="btn btn-secondary">Dashboard</a>
+  </div>
+</div>
+<script>
+var LABELS=['Very Low Pest Risk (0-25%)','Low Pest Risk (25-50%)','Moderate Pest Risk (50-65%)','High Pest Risk (65-80%)','Very High Pest Risk (80-100%)'];
+var EMOJIS=['&#127807;','&#127811;','&#9888;','&#128308;','&#128680;'];
+var CLASSES=['risk-very-low','risk-low','risk-moderate','risk-high','risk-very-high'];
+var COLORS=['#22c55e','#86efac','#f59e0b','#f97316','#ef4444'];
+var DESCS=['Minimal pest activity indicators. Current conditions are favorable.','Low probability of pest infestation. Monitor regularly.','Moderate risk detected. Consider preventive measures.','High risk of pest infestation. Immediate action recommended.','Critical pest risk. Emergency intervention required.'];
+var RECS=['Continue current practices. Maintain balanced irrigation and fertilization. Monthly monitoring.','Bi-weekly field inspections. Ensure adequate drainage. Avoid overwatering.','Increase monitoring. Consider preventive bio-pesticide. Review nitrogen levels.','Immediate field inspection. Apply targeted pesticide. Reduce irrigation.','Apply broad-spectrum treatment now. Contact agricultural extension officer immediately.'];
+fetch('/api/last-result').then(function(r){return r.json();}).then(function(d){
+  var cls=d.predictedClass;
+  document.getElementById('riskEmoji').innerHTML=EMOJIS[cls];
+  document.getElementById('riskLabel').textContent=LABELS[cls];
+  document.getElementById('riskDesc').textContent=DESCS[cls];
+  document.getElementById('confidence').textContent=(d.confidenceScore*100).toFixed(1)+'%';
+  document.getElementById('confidence').style.color=COLORS[cls];
+  document.getElementById('riskBadgeWrap').innerHTML='<span class="risk-badge '+CLASSES[cls]+'">'+LABELS[cls]+'</span>';
+  document.getElementById('resultCard').style.borderColor=COLORS[cls]+'88';
+  var bars='';
+  (d.probabilities||[]).forEach(function(p,i){
+    var pct=(p*100).toFixed(1);
+    bars+='<div style="margin-bottom:.85rem;"><div style="display:flex;justify-content:space-between;margin-bottom:.3rem;font-size:.8rem;"><span style="color:'+(i===cls?COLORS[i]:'var(--text-muted)')+';">'+'Class '+i+': '+LABELS[i]+'</span><span style="color:var(--text-dim);">'+pct+'%</span></div><div style="background:var(--bg-deep);border-radius:4px;height:8px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+COLORS[i]+';border-radius:4px;opacity:'+(i===cls?1:0.4)+';"></div></div></div>';
+  });
+  document.getElementById('probBars').innerHTML=bars;
+  document.getElementById('recommendations').innerHTML=RECS[cls].split('. ').filter(Boolean).map(function(s){return '<p style="margin-bottom:.5rem;">&#8226; '+s+'.</p>';}).join('');
+}).catch(function(){document.getElementById('resultCard').innerHTML='<div class="alert alert-error">Could not load result. <a href="/predict" style="color:var(--green);">Run a new prediction</a>.</div>';});
+</script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Predict — Crop Pest Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="/dashboard">🌿 CropGuard</a>
+  <div class="nav-spacer"></div>
+  <a class="nav-link" href="/dashboard">Dashboard</a>
+  <a class="nav-link active" href="/predict">Predict</a>
+  <a class="nav-link" href="/history">History</a>
+  <span class="nav-user">User</span>
+  <a class="nav-link" href="/logout" style="color:#f97316;">Logout</a>
+</nav>
+
+<div class="page" style="max-width:860px;">
+  <div style="margin-bottom:1.75rem;">
+    <h1 style="font-size:1.5rem; font-weight:800;">🔍 Pest Risk Prediction</h1>
+    <p style="color:var(--text-muted); font-size:.875rem; margin-top:.35rem;">
+      Enter the 14 field parameters below. All values will be processed by the trained neural network model.
+    </p>
+  </div>
+
+  <div id="errBox" class="alert alert-error" style="display:none;"></div>
+
+  <form method="POST" action="/predict" id="predictForm">
+
+    <!-- Section 1: Climate -->
+    <div class="card" style="margin-bottom:1.25rem;">
+      <h2 style="font-size:.9rem; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:.06em; margin-bottom:1.25rem;">
+        🌡 Climate & Atmosphere
+      </h2>
+      <div class="grid-3">
+        <div class="form-group">
+          <label class="form-label" for="temperature">Temperature (°C)</label>
+          <input class="form-input" type="number" id="temperature" name="temperature"
+                 step="0.1" min="-10" max="60" placeholder="e.g. 30" required/>
+          <div class="form-hint">Range: −10 to 60</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="humidity">Humidity (%)</label>
+          <input class="form-input" type="number" id="humidity" name="humidity"
+                 step="0.1" min="0" max="100" placeholder="e.g. 70" required/>
+          <div class="form-hint">Range: 0 to 100</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="windSpeed">Wind Speed (km/h)</label>
+          <input class="form-input" type="number" id="windSpeed" name="windSpeed"
+                 step="0.1" min="0" max="200" placeholder="e.g. 5" required/>
+          <div class="form-hint">Range: 0 to 200</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="rainfall">Rainfall (mm)</label>
+          <input class="form-input" type="number" id="rainfall" name="rainfall"
+                 step="0.1" min="0" max="3000" placeholder="e.g. 150" required/>
+          <div class="form-hint">Range: 0 to 3000</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sunlightExposure">Sunlight Exposure (hrs)</label>
+          <input class="form-input" type="number" id="sunlightExposure" name="sunlightExposure"
+                 step="0.1" min="0" max="24" placeholder="e.g. 9" required/>
+          <div class="form-hint">Range: 0 to 24</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="co2Concentration">CO₂ Concentration (ppm)</label>
+          <input class="form-input" type="number" id="co2Concentration" name="co2Concentration"
+                 step="1" min="300" max="1000" placeholder="e.g. 410" required/>
+          <div class="form-hint">Range: 300 to 1000</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Soil -->
+    <div class="card" style="margin-bottom:1.25rem;">
+      <h2 style="font-size:.9rem; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:.06em; margin-bottom:1.25rem;">
+        🌱 Soil & Nutrients
+      </h2>
+      <div class="grid-3">
+        <div class="form-group">
+          <label class="form-label" for="nitrogen">Nitrogen N (kg/ha)</label>
+          <input class="form-input" type="number" id="nitrogen" name="nitrogen"
+                 step="0.1" min="0" max="500" placeholder="e.g. 60" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="phosphorus">Phosphorus P (kg/ha)</label>
+          <input class="form-input" type="number" id="phosphorus" name="phosphorus"
+                 step="0.1" min="0" max="500" placeholder="e.g. 40" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="potassium">Potassium K (kg/ha)</label>
+          <input class="form-input" type="number" id="potassium" name="potassium"
+                 step="0.1" min="0" max="500" placeholder="e.g. 50" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="organicMatter">Organic Matter (%)</label>
+          <input class="form-input" type="number" id="organicMatter" name="organicMatter"
+                 step="0.1" min="0" max="100" placeholder="e.g. 6" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="soilMoisture">Soil Moisture (%)</label>
+          <input class="form-input" type="number" id="soilMoisture" name="soilMoisture"
+                 step="0.1" min="0" max="100" placeholder="e.g. 25" required/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Irrigation & Fertilizer -->
+    <div class="card" style="margin-bottom:1.75rem;">
+      <h2 style="font-size:.9rem; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:.06em; margin-bottom:1.25rem;">
+        💧 Irrigation & Fertilization
+      </h2>
+      <div class="grid-3">
+        <div class="form-group">
+          <label class="form-label" for="irrigationFrequency">Irrigation Frequency (days)</label>
+          <input class="form-input" type="number" id="irrigationFrequency" name="irrigationFrequency"
+                 step="1" min="0" max="365" placeholder="e.g. 4" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="waterUsageEfficiency">Water Usage Efficiency</label>
+          <input class="form-input" type="number" id="waterUsageEfficiency" name="waterUsageEfficiency"
+                 step="0.01" min="0" max="10" placeholder="e.g. 2.5" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="fertilizerUsage">Fertilizer Usage (kg/ha)</label>
+          <input class="form-input" type="number" id="fertilizerUsage" name="fertilizerUsage"
+                 step="0.1" min="0" max="2000" placeholder="e.g. 150" required/>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:1rem; justify-content:flex-end; flex-wrap:wrap;">
+      <button type="button" class="btn btn-secondary" onclick="fillExample()">
+        📋 Load Example Values
+      </button>
+      <button type="reset" class="btn btn-secondary">Clear</button>
+      <button type="submit" class="btn btn-primary btn-lg">
+        🚀 Run Prediction
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    const errBox = document.getElementById('errBox');
+    if (params.get('error')) {
+      errBox.textContent = '\u26a0 ' + decodeURIComponent(params.get('error'));
+      errBox.style.display = 'flex';
+    }
+  })();
+
+  // Example values from the notebook (known output: class 0 - Very Low Risk)
+  function fillExample() {
+    const fields = {
+      temperature: 26, humidity: 60, windSpeed: 12,
+      nitrogen: 55, phosphorus: 35, potassium: 40,
+      organicMatter: 3.5, soilMoisture: 16,
+      rainfall: 80, irrigationFrequency: 2,
+      waterUsageEfficiency: 2.8, sunlightExposure: 6,
+      co2Concentration: 390, fertilizerUsage: 90
+    };
+    Object.entries(fields).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    });
+  }
+</script>
+</body>
+</html>
