@@ -1,5 +1,5 @@
 # Crop Pest Predictor
-
+- Created by Sourabh Joshi, Bhavishya Aggarwal, Kapilan Srinivasan
 A full-stack Java desktop application that predicts crop pest risk using a pre-trained neural network model.
 
 ## Tech Stack
